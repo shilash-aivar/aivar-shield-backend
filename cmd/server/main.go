@@ -13,10 +13,14 @@ import (
 	"github.com/aivar-shield/backend/internal/api/handlers"
 	"github.com/aivar-shield/backend/internal/config"
 	"github.com/aivar-shield/backend/internal/db"
+	"github.com/aivar-shield/backend/internal/notify"
 	"github.com/aivar-shield/backend/internal/services/audit"
+	"github.com/aivar-shield/backend/internal/services/auth"
 	"github.com/aivar-shield/backend/internal/services/repos"
+	"github.com/aivar-shield/backend/internal/services/reports"
 	"github.com/aivar-shield/backend/internal/services/rules"
 	"github.com/aivar-shield/backend/internal/services/suppressions"
+	"github.com/aivar-shield/backend/internal/services/tenants"
 )
 
 func main() {
@@ -30,12 +34,28 @@ func main() {
 	defer pool.Close()
 
 	auditSvc := audit.NewService(pool, cfg.SuppressionSigningKey)
+	slack := notify.NewSlack(cfg.SlackWebhookURL, cfg.UIURL)
+	email := notify.NewEmail(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.EmailFrom, cfg.NotifyEmails, cfg.UIURL)
+	notifyHub := notify.NewHub(slack, email)
 	reposSvc := repos.NewService(pool)
-	suppressionsSvc := suppressions.NewService(pool, auditSvc)
+	suppressionsSvc := suppressions.NewService(pool, auditSvc, notifyHub)
 	rulesSvc := rules.NewService(pool)
+	tenantsSvc := tenants.NewService(pool)
+	authSvc := auth.NewService(pool, cfg)
+	reportsSvc := reports.NewService(pool, suppressionsSvc, auditSvc)
+	if err := tenantsSvc.SeedDefaults(ctx); err != nil {
+		log.Printf("warning: seed tenants: %v", err)
+	}
+	if err := rulesSvc.SeedCatalog(ctx); err != nil {
+		log.Printf("warning: seed catalog: %v", err)
+	}
 
-	h := handlers.New(reposSvc, suppressionsSvc, rulesSvc, auditSvc)
+	h := handlers.New(reposSvc, suppressionsSvc, rulesSvc, auditSvc, tenantsSvc, authSvc, reportsSvc)
 	router := api.NewRouter(h)
+
+	expiryCtx, expiryCancel := context.WithCancel(ctx)
+	defer expiryCancel()
+	go suppressions.RunExpiryWorker(expiryCtx, suppressionsSvc, 15*time.Minute)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,

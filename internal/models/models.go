@@ -13,8 +13,51 @@ type Repo struct {
 	RepoType  []string  `json:"type"`
 	Owner     string    `json:"owner,omitempty"`
 	TFOwner   string    `json:"tf_owner,omitempty"`
+	ProjectID string    `json:"project_id,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Organization struct {
+	ID            string    `json:"id"`
+	Slug          string    `json:"slug"`
+	Name          string    `json:"name"`
+	GitHubOrgSlug string    `json:"github_org_slug,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type Team struct {
+	ID             string    `json:"id"`
+	OrganizationID string    `json:"organization_id"`
+	Slug           string    `json:"slug"`
+	Name           string    `json:"name"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type Project struct {
+	ID             string    `json:"id"`
+	OrganizationID string    `json:"organization_id"`
+	TeamID         string    `json:"team_id,omitempty"`
+	Slug           string    `json:"slug"`
+	Name           string    `json:"name"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type Member struct {
+	UserID    string `json:"user_id"`
+	Login     string `json:"login"`
+	Email     string `json:"email"`
+	Name      string `json:"name,omitempty"`
+	Role      string `json:"role"`
+}
+
+type UpdateMemberRoleRequest struct {
+	Role string `json:"role"`
+}
+
+type AddMemberRequest struct {
+	GitHubLogin string `json:"github_login"`
+	Role        string `json:"role"`
 }
 
 type Rule struct {
@@ -28,6 +71,25 @@ type Rule struct {
 	DocsURL     string `json:"docs_url,omitempty"`
 	Version     int    `json:"version"`
 	Active      bool   `json:"active"`
+}
+
+type Tool struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Category     string `json:"category"`
+	Binary       string `json:"binary"`
+	OfficialDocs string `json:"official_docs"`
+	RuleIndex    string `json:"rule_index"`
+	Description  string `json:"description"`
+}
+
+type ExplainResponse struct {
+	Rule          Rule   `json:"rule"`
+	Tool          Tool   `json:"tool"`
+	OfficialDocs  string `json:"official_docs"`
+	RuleIndex     string `json:"rule_index"`
+	ResolvedDocs  string `json:"resolved_docs_url"`
+	CatalogSource bool   `json:"catalog_source"`
 }
 
 type Suppression struct {
@@ -70,10 +132,28 @@ type AuditEntry struct {
 }
 
 type RegisterRepoRequest struct {
-	FullName string   `json:"full_name"`
-	Type     []string `json:"type"`
-	Owner    string   `json:"owner"`
-	TFOwner  string   `json:"tf_owner,omitempty"`
+	FullName  string   `json:"full_name"`
+	Type      []string `json:"type"`
+	Owner     string   `json:"owner"`
+	TFOwner   string   `json:"tf_owner,omitempty"`
+	ProjectID string   `json:"project_id,omitempty"`
+}
+
+type CreateOrganizationRequest struct {
+	Slug          string `json:"slug"`
+	Name          string `json:"name"`
+	GitHubOrgSlug string `json:"github_org_slug,omitempty"`
+}
+
+type CreateTeamRequest struct {
+	Slug string `json:"slug"`
+	Name string `json:"name"`
+}
+
+type CreateProjectRequest struct {
+	Slug   string `json:"slug"`
+	Name   string `json:"name"`
+	TeamID string `json:"team_id,omitempty"`
 }
 
 type CreateSuppressionRequest struct {

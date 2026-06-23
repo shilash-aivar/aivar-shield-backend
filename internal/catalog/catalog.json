@@ -1,0 +1,501 @@
+{
+  "tools": [
+    {
+      "id": "hadolint",
+      "name": "Hadolint",
+      "category": "dockerfile",
+      "binary": "hadolint",
+      "official_docs": "https://github.com/hadolint/hadolint",
+      "rule_index": "https://github.com/hadolint/hadolint#rules",
+      "description": "Static analysis linter for Dockerfiles."
+    },
+    {
+      "id": "checkov",
+      "name": "Checkov",
+      "category": "iac",
+      "binary": "checkov",
+      "official_docs": "https://www.checkov.io/",
+      "rule_index": "https://www.checkov.io/5.Policy%20Index/terraform.html",
+      "description": "IaC scanner for Terraform, CloudFormation, Kubernetes, Helm, and Docker."
+    },
+    {
+      "id": "tfsec",
+      "name": "tfsec",
+      "category": "terraform",
+      "binary": "tfsec",
+      "official_docs": "https://aquasecurity.github.io/tfsec/",
+      "rule_index": "https://aquasecurity.github.io/tfsec/v1.28.1/checks/aws/",
+      "description": "Security scanner for Terraform code."
+    },
+    {
+      "id": "trivy",
+      "name": "Trivy",
+      "category": "vulnerability",
+      "binary": "trivy",
+      "official_docs": "https://aquasecurity.github.io/trivy/",
+      "rule_index": "https://avd.aquasecurity.github.io/",
+      "description": "Vulnerability and misconfiguration scanner for containers, filesystems, and IaC."
+    },
+    {
+      "id": "grype",
+      "name": "Grype",
+      "category": "vulnerability",
+      "binary": "grype",
+      "official_docs": "https://github.com/anchore/grype",
+      "rule_index": "https://oss.anchore.com/docs/guides/vulnerability/grype/",
+      "description": "Vulnerability scanner for container images and filesystems (Anchore)."
+    },
+    {
+      "id": "grant",
+      "name": "Grant",
+      "category": "license",
+      "binary": "grant",
+      "official_docs": "https://github.com/anchore/grant",
+      "rule_index": "https://oss.anchore.com/docs/guides/license/",
+      "description": "License compliance scanner for container images, filesystems, and SBOMs (Anchore)."
+    },
+    {
+      "id": "dockle",
+      "name": "Dockle",
+      "category": "container",
+      "binary": "dockle",
+      "official_docs": "https://github.com/goodwithtech/dockle",
+      "rule_index": "https://github.com/goodwithtech/dockle/blob/master/CHECKS.md",
+      "description": "Container image linter for security best practices."
+    },
+    {
+      "id": "semgrep",
+      "name": "Semgrep",
+      "category": "sast",
+      "binary": "semgrep",
+      "official_docs": "https://semgrep.dev/docs/",
+      "rule_index": "https://semgrep.dev/explore",
+      "description": "Static application security testing (SAST) for many languages."
+    },
+    {
+      "id": "tflint",
+      "name": "TFLint",
+      "category": "terraform",
+      "binary": "tflint",
+      "official_docs": "https://github.com/terraform-linters/tflint",
+      "rule_index": "https://github.com/terraform-linters/tflint/tree/master/docs/rules",
+      "description": "Terraform linter focused on best practices and provider-specific rules."
+    },
+    {
+      "id": "sonarqube",
+      "name": "SonarQube",
+      "category": "sast",
+      "binary": "sonar-scanner",
+      "official_docs": "https://docs.sonarsource.com/sonarqube/",
+      "rule_index": "https://rules.sonarsource.com/",
+      "description": "Code quality and security analysis platform."
+    },
+    {
+      "id": "sbom",
+      "name": "SBOM (Syft)",
+      "category": "supply-chain",
+      "binary": "syft",
+      "official_docs": "https://github.com/anchore/syft",
+      "rule_index": "https://cyclonedx.org/",
+      "description": "Software Bill of Materials generation and compliance checks via Syft/CycloneDX."
+    },
+    {
+      "id": "detect-secrets",
+      "name": "detect-secrets",
+      "category": "secrets",
+      "binary": "detect-secrets",
+      "official_docs": "https://github.com/Yelp/detect-secrets",
+      "rule_index": "https://github.com/Yelp/detect-secrets#usage",
+      "description": "Enterprise-friendly tool for detecting secrets in code."
+    },
+    {
+      "id": "gitleaks",
+      "name": "Gitleaks",
+      "category": "secrets",
+      "binary": "gitleaks",
+      "official_docs": "https://github.com/gitleaks/gitleaks",
+      "rule_index": "https://github.com/gitleaks/gitleaks#usage",
+      "description": "Static analysis tool for detecting hardcoded secrets in git repos and files."
+    }
+  ],
+  "rules": [
+    {
+      "tool": "hadolint",
+      "rule_id": "DL3008",
+      "severity": "warning",
+      "title": "Pin versions in apt get install",
+      "description": "Debian packages should be pinned to a specific version to ensure reproducible builds and avoid unexpected upgrades.",
+      "fix_guide": "Use apt-get install package=version, e.g. apt-get install curl=7.88.1-4+deb12u5",
+      "docs_url": "https://github.com/hadolint/hadolint/wiki/DL3008"
+    },
+    {
+      "tool": "hadolint",
+      "rule_id": "DL3006",
+      "severity": "warning",
+      "title": "Always tag the version of an image explicitly",
+      "description": "Using a mutable tag like latest can cause unpredictable deployments.",
+      "fix_guide": "Use a specific image tag or digest: FROM node:20.11-alpine",
+      "docs_url": "https://github.com/hadolint/hadolint/wiki/DL3006"
+    },
+    {
+      "tool": "hadolint",
+      "rule_id": "DL3002",
+      "severity": "warning",
+      "title": "Last user should not be root",
+      "description": "Running containers as root increases blast radius if the container is compromised.",
+      "fix_guide": "Add a non-root USER instruction before the end of the Dockerfile.",
+      "docs_url": "https://github.com/hadolint/hadolint/wiki/DL3002"
+    },
+    {
+      "tool": "hadolint",
+      "rule_id": "DL3007",
+      "severity": "warning",
+      "title": "Avoid apt-get upgrade",
+      "description": "apt-get upgrade in Dockerfiles produces non-reproducible image layers.",
+      "fix_guide": "Remove apt-get upgrade; pin specific package versions instead.",
+      "docs_url": "https://github.com/hadolint/hadolint/wiki/DL3007"
+    },
+    {
+      "tool": "hadolint",
+      "rule_id": "DL3015",
+      "severity": "warning",
+      "title": "Avoid additional packages by using --no-install-recommends",
+      "description": "Installing recommended packages increases image size and attack surface.",
+      "fix_guide": "Use apt-get install --no-install-recommends.",
+      "docs_url": "https://github.com/hadolint/hadolint/wiki/DL3015"
+    },
+    {
+      "tool": "hadolint",
+      "rule_id": "DL3013",
+      "severity": "warning",
+      "title": "Pin versions in pip install",
+      "description": "Unpinned pip packages can change between builds.",
+      "fix_guide": "Use pip install package==version in requirements or install line.",
+      "docs_url": "https://github.com/hadolint/hadolint/wiki/DL3013"
+    },
+    {
+      "tool": "hadolint",
+      "rule_id": "DL3025",
+      "severity": "warning",
+      "title": "Use JSON notation for CMD and ENTRYPOINT",
+      "description": "Exec form avoids shell injection and signal handling issues.",
+      "fix_guide": "Use CMD [\"executable\", \"param1\"] instead of shell form.",
+      "docs_url": "https://github.com/hadolint/hadolint/wiki/DL3025"
+    },
+    {
+      "tool": "checkov",
+      "rule_id": "CKV_DOCKER_3",
+      "severity": "high",
+      "title": "Ensure that a user for the container has been created",
+      "description": "Containers should not run as root.",
+      "fix_guide": "Add a non-root USER in the Dockerfile or Kubernetes securityContext.",
+      "docs_url": "https://www.checkov.io/5.Policy%20Index/docker.html"
+    },
+    {
+      "tool": "checkov",
+      "rule_id": "CKV_DOCKER_2",
+      "severity": "medium",
+      "title": "Ensure that HEALTHCHECK is present",
+      "description": "Docker images should define a HEALTHCHECK so orchestrators can detect unhealthy containers.",
+      "fix_guide": "Add HEALTHCHECK CMD curl -f http://localhost/ || exit 1",
+      "docs_url": "https://www.checkov.io/5.Policy%20Index/docker.html"
+    },
+    {
+      "tool": "checkov",
+      "rule_id": "CKV_AWS_18",
+      "severity": "medium",
+      "title": "S3 bucket access logging disabled",
+      "description": "S3 buckets should have access logging enabled for audit and incident response.",
+      "fix_guide": "Set logging configuration on the aws_s3_bucket resource.",
+      "docs_url": "https://www.checkov.io/5.Policy%20Index/terraform.html"
+    },
+    {
+      "tool": "checkov",
+      "rule_id": "CKV_K8S_8",
+      "severity": "high",
+      "title": "Liveness probe should be configured",
+      "description": "Kubernetes workloads should define liveness probes so failed pods are restarted.",
+      "fix_guide": "Add livenessProbe to the container spec in your Deployment manifest.",
+      "docs_url": "https://www.checkov.io/5.Policy%20Index/kubernetes.html"
+    },
+    {
+      "tool": "checkov",
+      "rule_id": "CKV_AWS_21",
+      "severity": "medium",
+      "title": "S3 bucket versioning disabled",
+      "description": "Versioning protects against accidental deletion and supports recovery.",
+      "fix_guide": "Enable versioning on the aws_s3_bucket resource.",
+      "docs_url": "https://www.checkov.io/5.Policy%20Index/terraform.html"
+    },
+    {
+      "tool": "checkov",
+      "rule_id": "CKV_AWS_145",
+      "severity": "high",
+      "title": "S3 bucket is not encrypted",
+      "description": "S3 buckets should use default encryption at rest.",
+      "fix_guide": "Add server_side_encryption_configuration to aws_s3_bucket.",
+      "docs_url": "https://www.checkov.io/5.Policy%20Index/terraform.html"
+    },
+    {
+      "tool": "tfsec",
+      "rule_id": "AWS088",
+      "severity": "high",
+      "title": "IAM policy should not allow wildcard actions on wildcard resources",
+      "description": "Overly permissive IAM policies increase blast radius of credential compromise.",
+      "fix_guide": "Scope actions and resources to minimum required permissions.",
+      "docs_url": "https://aquasecurity.github.io/tfsec/latest/checks/aws/iam/no-policy-wildcards/"
+    },
+    {
+      "tool": "tfsec",
+      "rule_id": "AWS017",
+      "severity": "high",
+      "title": "Unencrypted S3 bucket",
+      "description": "S3 buckets should encrypt data at rest using SSE.",
+      "fix_guide": "Add server_side_encryption_configuration block to aws_s3_bucket.",
+      "docs_url": "https://aquasecurity.github.io/tfsec/v1.28.1/checks/aws/s3/enable-bucket-encryption/"
+    },
+    {
+      "tool": "tfsec",
+      "rule_id": "AWS045",
+      "severity": "medium",
+      "title": "Security group allows ingress from 0.0.0.0/0",
+      "description": "Overly permissive security group rules expose services to the public internet.",
+      "fix_guide": "Restrict cidr_blocks to required IP ranges only.",
+      "docs_url": "https://aquasecurity.github.io/tfsec/v1.28.1/checks/aws/ec2/no-public-ingress-sgr/"
+    },
+    {
+      "tool": "tfsec",
+      "rule_id": "AWS002",
+      "severity": "high",
+      "title": "S3 Bucket does not have logging enabled",
+      "description": "S3 bucket logging provides an audit trail of access to the bucket.",
+      "fix_guide": "Enable logging on aws_s3_bucket with a target bucket and prefix.",
+      "docs_url": "https://aquasecurity.github.io/tfsec/v1.28.1/checks/aws/s3/enable-bucket-logging/"
+    },
+    {
+      "tool": "tfsec",
+      "rule_id": "AWS096",
+      "severity": "high",
+      "title": "RDS encryption has not been enabled",
+      "description": "RDS instances should encrypt storage at rest.",
+      "fix_guide": "Set storage_encrypted = true on aws_db_instance.",
+      "docs_url": "https://aquasecurity.github.io/tfsec/latest/checks/aws/rds/enable-encryption/"
+    },
+    {
+      "tool": "trivy",
+      "rule_id": "DS-0001",
+      "severity": "medium",
+      "title": "Do not use latest tag",
+      "description": "Trivy detected a mutable latest tag in the Dockerfile.",
+      "fix_guide": "Pin the base image to a specific tag or digest.",
+      "docs_url": "https://avd.aquasecurity.github.io/misconfig/ds-0001/"
+    },
+    {
+      "tool": "trivy",
+      "rule_id": "DS-0002",
+      "severity": "high",
+      "title": "Image user should not be root",
+      "description": "Dockerfile sets or defaults to root user.",
+      "fix_guide": "Add USER directive with a non-zero UID.",
+      "docs_url": "https://avd.aquasecurity.github.io/misconfig/ds-0002/"
+    },
+    {
+      "tool": "trivy",
+      "rule_id": "DS-0026",
+      "severity": "low",
+      "title": "No HEALTHCHECK defined",
+      "description": "Dockerfile has no HEALTHCHECK instruction.",
+      "fix_guide": "Add HEALTHCHECK CMD to validate container health.",
+      "docs_url": "https://avd.aquasecurity.github.io/misconfig/ds-0026/"
+    },
+    {
+      "tool": "trivy",
+      "rule_id": "DS-0029",
+      "severity": "high",
+      "title": "apt-get missing --no-install-recommends",
+      "description": "apt-get install should use --no-install-recommends to reduce image size.",
+      "fix_guide": "Add --no-install-recommends to apt-get install lines.",
+      "docs_url": "https://avd.aquasecurity.github.io/misconfig/ds-0029/"
+    },
+    {
+      "tool": "trivy",
+      "rule_id": "AVD-KSV-0003",
+      "severity": "medium",
+      "title": "Containers should drop all default capabilities",
+      "description": "Kubernetes containers should drop unnecessary Linux capabilities.",
+      "fix_guide": "Set securityContext.capabilities.drop: [ALL] and add only required caps.",
+      "docs_url": "https://avd.aquasecurity.github.io/misconfig/kubernetes/AVD-KSV-0003/"
+    },
+    {
+      "tool": "trivy",
+      "rule_id": "CVE-2021-44228",
+      "severity": "critical",
+      "title": "Log4Shell — Apache Log4j RCE",
+      "description": "Log4j versions before 2.15.0 are vulnerable to remote code execution via JNDI lookup.",
+      "fix_guide": "Upgrade log4j-core to 2.17.1 or later, or remove the vulnerable dependency.",
+      "docs_url": "https://avd.aquasecurity.github.io/nvd/cve-2021-44228/"
+    },
+    {
+      "tool": "trivy",
+      "rule_id": "AVD-KSV-0001",
+      "severity": "high",
+      "title": "Containers must not run as root",
+      "description": "Kubernetes pods should set securityContext.runAsNonRoot to true.",
+      "fix_guide": "Set securityContext.runAsNonRoot: true and runAsUser to a non-zero UID.",
+      "docs_url": "https://avd.aquasecurity.github.io/misconfig/kubernetes/AVD-KSV-0001/"
+    },
+    {
+      "tool": "grype",
+      "rule_id": "GHSA-jfh8-c2jp-5v3q",
+      "severity": "high",
+      "title": "Known vulnerability in dependency",
+      "description": "Grype matched a known CVE/GHSA in a package from the SBOM or filesystem scan.",
+      "fix_guide": "Upgrade the affected package to the fixed version listed in the advisory.",
+      "docs_url": "https://github.com/anchore/grype#grype"
+    },
+    {
+      "tool": "grant",
+      "rule_id": "LICENSE-DENIED",
+      "severity": "high",
+      "title": "License denied by policy",
+      "description": "A package license was found that is not on the allow list in grant.yaml / .grant.yaml.",
+      "fix_guide": "Remove or replace the dependency, or request a license exception via aivar suppress with legal approval.",
+      "docs_url": "https://oss.anchore.com/docs/guides/license/policies/"
+    },
+    {
+      "tool": "grant",
+      "rule_id": "LICENSE-UNLICENSED",
+      "severity": "high",
+      "title": "Package has no detected license",
+      "description": "Grant policy requires every package to have a known license (require-license: true).",
+      "fix_guide": "Identify the package license manually, upgrade to a version with SPDX metadata, or file an exception.",
+      "docs_url": "https://oss.anchore.com/docs/guides/license/getting-started/"
+    },
+    {
+      "tool": "grant",
+      "rule_id": "LICENSE-GPL",
+      "severity": "critical",
+      "title": "Strong copyleft license detected (GPL family)",
+      "description": "GPL or AGPL licenses may impose source-distribution obligations incompatible with proprietary client delivery.",
+      "fix_guide": "Replace the dependency with a permissively licensed alternative or obtain legal approval.",
+      "docs_url": "https://oss.anchore.com/docs/guides/license/policies/"
+    },
+    {
+      "tool": "grant",
+      "rule_id": "LICENSE-NON-SPDX",
+      "severity": "medium",
+      "title": "Non-SPDX license identifier",
+      "description": "The license string could not be matched to a standard SPDX identifier when require-known-license is enabled.",
+      "fix_guide": "Map the license to an SPDX ID in your SBOM or update grant policy after legal review.",
+      "docs_url": "https://oss.anchore.com/docs/reference/grant/configuration/"
+    },
+    {
+      "tool": "dockle",
+      "rule_id": "CIS-DI-0001",
+      "severity": "high",
+      "title": "Do not use latest tag",
+      "description": "Images should use a specific tag instead of latest to ensure reproducibility.",
+      "fix_guide": "Pin the base image to a specific version tag or digest.",
+      "docs_url": "https://github.com/goodwithtech/dockle/blob/master/CHECKS.md#cis-di-0001"
+    },
+    {
+      "tool": "dockle",
+      "rule_id": "CIS-DI-0005",
+      "severity": "high",
+      "title": "Do not use apt-get upgrade",
+      "description": "Running apt-get upgrade in Docker builds causes non-deterministic image layers.",
+      "fix_guide": "Remove apt-get upgrade; pin package versions instead.",
+      "docs_url": "https://github.com/goodwithtech/dockle/blob/master/CHECKS.md#cis-di-0005"
+    },
+    {
+      "tool": "semgrep",
+      "rule_id": "python.lang.security.audit.eval-detected",
+      "severity": "high",
+      "title": "Use of eval() detected",
+      "description": "eval() executes arbitrary code and is a common injection vector.",
+      "fix_guide": "Replace eval() with ast.literal_eval() for safe parsing, or redesign to avoid dynamic execution.",
+      "docs_url": "https://semgrep.dev/r/python.lang.security.audit.eval-detected"
+    },
+    {
+      "tool": "semgrep",
+      "rule_id": "generic.secrets.security.detected-private-key",
+      "severity": "critical",
+      "title": "Private key detected in source",
+      "description": "Private keys committed to source control can lead to credential compromise.",
+      "fix_guide": "Remove the key, rotate credentials, and use a secrets manager.",
+      "docs_url": "https://semgrep.dev/r/generic.secrets.security.detected-private-key"
+    },
+    {
+      "tool": "tflint",
+      "rule_id": "terraform_unused_declarations",
+      "severity": "warning",
+      "title": "Unused variable or declaration",
+      "description": "Terraform variables or resources declared but never used add maintenance burden.",
+      "fix_guide": "Remove unused variables or reference them in your configuration.",
+      "docs_url": "https://github.com/terraform-linters/tflint/blob/master/docs/rules/terraform_unused_declarations.md"
+    },
+    {
+      "tool": "tflint",
+      "rule_id": "aws_instance_invalid_type",
+      "severity": "error",
+      "title": "Invalid EC2 instance type",
+      "description": "The instance type may not exist in the target AWS region.",
+      "fix_guide": "Use a valid instance type for your region (e.g. t3.micro).",
+      "docs_url": "https://github.com/terraform-linters/tflint/tree/master/docs/rules"
+    },
+    {
+      "tool": "sonarqube",
+      "rule_id": "java:S2077",
+      "severity": "critical",
+      "title": "SQL injection vulnerability",
+      "description": "User input is used to build SQL queries without sanitization.",
+      "fix_guide": "Use parameterized queries / prepared statements instead of string concatenation.",
+      "docs_url": "https://rules.sonarsource.com/java/RSPEC-2077/"
+    },
+    {
+      "tool": "sonarqube",
+      "rule_id": "typescript:S2068",
+      "severity": "critical",
+      "title": "Hard-coded credentials",
+      "description": "Credentials should not be hard-coded in source code.",
+      "fix_guide": "Load secrets from environment variables or a secrets manager.",
+      "docs_url": "https://rules.sonarsource.com/typescript/RSPEC-2068/"
+    },
+    {
+      "tool": "sbom",
+      "rule_id": "SBOM-MISSING",
+      "severity": "high",
+      "title": "SBOM file not present",
+      "description": "Client deliverables require a CycloneDX or SPDX SBOM for supply-chain transparency.",
+      "fix_guide": "Run syft packages dir:. -o cyclonedx-json > sbom.json in your release pipeline.",
+      "docs_url": "https://github.com/anchore/syft#sbom-format-support"
+    },
+    {
+      "tool": "sbom",
+      "rule_id": "SBOM-STALE",
+      "severity": "medium",
+      "title": "SBOM older than release artifact",
+      "description": "The SBOM must be generated from the same build as the shipped artifact.",
+      "fix_guide": "Regenerate SBOM as part of the main branch packaging step, not manually.",
+      "docs_url": "https://cyclonedx.org/capabilities/sbom/"
+    },
+    {
+      "tool": "detect-secrets",
+      "rule_id": "SECRET-DETECTED",
+      "severity": "critical",
+      "title": "Secret detected in source",
+      "description": "detect-secrets found a high-entropy string or known secret pattern in the codebase.",
+      "fix_guide": "Remove the secret, rotate credentials, and use a secrets manager or environment variables.",
+      "docs_url": "https://github.com/Yelp/detect-secrets"
+    },
+    {
+      "tool": "gitleaks",
+      "rule_id": "GITLEAKS-SECRET",
+      "severity": "critical",
+      "title": "Hardcoded secret detected",
+      "description": "Gitleaks matched a secret in the repository or filesystem.",
+      "fix_guide": "Remove the secret from source, rotate it, and add a gitleaks allowlist entry only via aivar suppress.",
+      "docs_url": "https://github.com/gitleaks/gitleaks"
+    }
+  ]
+}

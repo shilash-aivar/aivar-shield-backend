@@ -62,26 +62,43 @@ func (s *Service) Write(ctx context.Context, entry models.AuditEntry) (models.Au
 	return out, nil
 }
 
-func (s *Service) List(ctx context.Context, repo, action string, limit int) ([]models.AuditEntry, error) {
+type ListFilter struct {
+	Repo      string
+	Action    string
+	OrgID     string
+	TeamID    string
+	ProjectID string
+	Limit     int
+}
+
+func (s *Service) List(ctx context.Context, filter ListFilter) ([]models.AuditEntry, error) {
+	limit := filter.Limit
 	if limit <= 0 {
 		limit = 50
 	}
 
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, timestamp, actor, actor_type, surface, action,
-			resource_type, resource_id, repo, rule_id, tool, severity, details, signature
-		FROM audit_log
-		WHERE ($1 = '' OR repo = $1)
-		  AND ($2 = '' OR action = $2)
-		ORDER BY timestamp DESC
-		LIMIT $3
-	`, repo, action, limit)
+		SELECT a.id, a.timestamp, a.actor, a.actor_type, a.surface, a.action,
+			a.resource_type, a.resource_id, a.repo, a.rule_id, a.tool, a.severity, a.details, a.signature
+		FROM audit_log a
+		LEFT JOIN repos r ON r.full_name = a.repo
+		LEFT JOIN projects p ON p.id = r.project_id
+		LEFT JOIN repo_projects rp ON rp.repo_id = r.id
+		LEFT JOIN projects p2 ON p2.id = rp.project_id
+		WHERE ($1 = '' OR a.repo = $1)
+		  AND ($2 = '' OR a.action = $2)
+		  AND ($3 = '' OR COALESCE(p.organization_id, p2.organization_id)::text = $3)
+		  AND ($4 = '' OR COALESCE(p.team_id, p2.team_id)::text = $4)
+		  AND ($5 = '' OR r.project_id::text = $5 OR rp.project_id::text = $5)
+		ORDER BY a.timestamp DESC
+		LIMIT $6
+	`, filter.Repo, filter.Action, filter.OrgID, filter.TeamID, filter.ProjectID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list audit log: %w", err)
 	}
 	defer rows.Close()
 
-	var entries []models.AuditEntry
+	var entries = make([]models.AuditEntry, 0)
 	for rows.Next() {
 		var entry models.AuditEntry
 		var repoVal, ruleID, tool, severity *string

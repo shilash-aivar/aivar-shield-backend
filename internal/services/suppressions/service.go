@@ -7,18 +7,28 @@ import (
 	"time"
 
 	"github.com/aivar-shield/backend/internal/models"
+	"github.com/aivar-shield/backend/internal/notify"
 	"github.com/aivar-shield/backend/internal/services/audit"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Service struct {
-	pool  *pgxpool.Pool
-	audit *audit.Service
+	pool    *pgxpool.Pool
+	audit   *audit.Service
+	notify  *notify.Hub
 }
 
-func NewService(pool *pgxpool.Pool, auditSvc *audit.Service) *Service {
-	return &Service{pool: pool, audit: auditSvc}
+type ListFilter struct {
+	Repo      string
+	Status    string
+	OrgID     string
+	TeamID    string
+	ProjectID string
+}
+
+func NewService(pool *pgxpool.Pool, auditSvc *audit.Service, hub *notify.Hub) *Service {
+	return &Service{pool: pool, audit: auditSvc, notify: hub}
 }
 
 func (s *Service) Create(ctx context.Context, req models.CreateSuppressionRequest) (models.Suppression, error) {
@@ -66,26 +76,42 @@ func (s *Service) Create(ctx context.Context, req models.CreateSuppressionReques
 		Repo: req.Repo, RuleID: req.RuleID, Tool: req.Tool,
 	})
 
+	_ = s.notify.SuppressionStatusChanged(ctx, notify.SuppressionEvent{
+		PlatformRef: sup.PlatformRef,
+		Repo:        req.Repo,
+		Tool:        sup.Tool,
+		RuleID:      sup.RuleID,
+		Status:      sup.Status,
+		RequestedBy: sup.RequestedBy,
+		Reason:      sup.Reason,
+	})
+
 	return sup, nil
 }
 
-func (s *Service) List(ctx context.Context, repo, status string) ([]models.Suppression, error) {
+func (s *Service) List(ctx context.Context, filter ListFilter) ([]models.Suppression, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT s.id, s.platform_ref, s.repo_id, r.full_name, s.tool, s.rule_id, s.suppression_type,
 			s.file_path, s.line_number, s.reason, s.scope, s.status, s.severity, s.requested_by,
 			s.approved_by, s.expires_at, s.native_comment, s.created_at, s.updated_at
 		FROM suppressions s
 		JOIN repos r ON r.id = s.repo_id
+		LEFT JOIN projects p ON p.id = r.project_id
+		LEFT JOIN repo_projects rp ON rp.repo_id = r.id
+		LEFT JOIN projects p2 ON p2.id = rp.project_id
 		WHERE ($1 = '' OR r.full_name = $1)
 		  AND ($2 = '' OR s.status = $2)
+		  AND ($3 = '' OR COALESCE(p.organization_id, p2.organization_id)::text = $3)
+		  AND ($4 = '' OR COALESCE(p.team_id, p2.team_id)::text = $4)
+		  AND ($5 = '' OR r.project_id::text = $5 OR rp.project_id::text = $5)
 		ORDER BY s.created_at DESC
-	`, repo, status)
+	`, filter.Repo, filter.Status, filter.OrgID, filter.TeamID, filter.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("list suppressions: %w", err)
 	}
 	defer rows.Close()
 
-	var out []models.Suppression
+	var out = make([]models.Suppression, 0)
 	for rows.Next() {
 		sup, err := scanSuppressionRow(rows)
 		if err != nil {
@@ -134,7 +160,51 @@ func (s *Service) UpdateStatus(ctx context.Context, id string, req models.Update
 		RuleID: sup.RuleID, Tool: sup.Tool,
 	})
 
+	repo, _ := s.repoFullName(ctx, id)
+	sup.Repo = repo
+	_ = s.notify.SuppressionStatusChanged(ctx, notify.SuppressionEvent{
+		PlatformRef: sup.PlatformRef,
+		Repo:        repo,
+		Tool:        sup.Tool,
+		RuleID:      sup.RuleID,
+		Status:      sup.Status,
+		RequestedBy: sup.RequestedBy,
+		ApprovedBy:  sup.ApprovedBy,
+		Reason:      sup.Reason,
+	})
+
 	return sup, nil
+}
+
+func (s *Service) OrgIDForSuppression(ctx context.Context, id string) (string, error) {
+	var orgID string
+	err := s.pool.QueryRow(ctx, `
+		SELECT COALESCE(
+			p.organization_id,
+			p2.organization_id,
+			(SELECT id FROM organizations ORDER BY created_at LIMIT 1)
+		)::text
+		FROM suppressions s
+		JOIN repos r ON r.id = s.repo_id
+		LEFT JOIN projects p ON p.id = r.project_id
+		LEFT JOIN repo_projects rp ON rp.repo_id = r.id
+		LEFT JOIN projects p2 ON p2.id = rp.project_id
+		WHERE s.id = $1
+	`, id).Scan(&orgID)
+	if err != nil {
+		return "", fmt.Errorf("resolve suppression org: %w", err)
+	}
+	return orgID, nil
+}
+
+func (s *Service) repoFullName(ctx context.Context, suppressionID string) (string, error) {
+	var fullName string
+	err := s.pool.QueryRow(ctx, `
+		SELECT r.full_name FROM suppressions s
+		JOIN repos r ON r.id = s.repo_id
+		WHERE s.id = $1
+	`, suppressionID).Scan(&fullName)
+	return fullName, err
 }
 
 func (s *Service) repoID(ctx context.Context, fullName string) (string, error) {
