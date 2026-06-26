@@ -14,13 +14,17 @@ import (
 	"github.com/aivar-shield/backend/internal/config"
 	"github.com/aivar-shield/backend/internal/db"
 	"github.com/aivar-shield/backend/internal/notify"
+	"github.com/aivar-shield/backend/internal/services/analytics"
 	"github.com/aivar-shield/backend/internal/services/audit"
 	"github.com/aivar-shield/backend/internal/services/auth"
+	"github.com/aivar-shield/backend/internal/services/infra"
+	"github.com/aivar-shield/backend/internal/services/policy"
 	"github.com/aivar-shield/backend/internal/services/repos"
 	"github.com/aivar-shield/backend/internal/services/reports"
 	"github.com/aivar-shield/backend/internal/services/rules"
 	"github.com/aivar-shield/backend/internal/services/suppressions"
 	"github.com/aivar-shield/backend/internal/services/tenants"
+	"github.com/aivar-shield/backend/internal/storage"
 )
 
 func main() {
@@ -36,13 +40,18 @@ func main() {
 	auditSvc := audit.NewService(pool, cfg.SuppressionSigningKey)
 	slack := notify.NewSlack(cfg.SlackWebhookURL, cfg.UIURL)
 	email := notify.NewEmail(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.EmailFrom, cfg.NotifyEmails, cfg.UIURL)
-	notifyHub := notify.NewHub(slack, email)
+	webhook := notify.NewWebhook(cfg.WebhookURL, cfg.WebhookSecret)
+	notifyHub := notify.NewHub(slack, email, webhook)
 	reposSvc := repos.NewService(pool)
 	suppressionsSvc := suppressions.NewService(pool, auditSvc, notifyHub)
 	rulesSvc := rules.NewService(pool)
 	tenantsSvc := tenants.NewService(pool)
 	authSvc := auth.NewService(pool, cfg)
 	reportsSvc := reports.NewService(pool, suppressionsSvc, auditSvc)
+	analyticsSvc := analytics.NewService(pool)
+	infraSvc := infra.NewService(pool, auditSvc)
+	policySvc := policy.NewService(suppressionsSvc)
+	artifacts := storage.NewArtifacts(cfg.ArtifactsDir, cfg.S3Bucket, cfg.S3Region)
 	if err := tenantsSvc.SeedDefaults(ctx); err != nil {
 		log.Printf("warning: seed tenants: %v", err)
 	}
@@ -50,7 +59,7 @@ func main() {
 		log.Printf("warning: seed catalog: %v", err)
 	}
 
-	h := handlers.New(reposSvc, suppressionsSvc, rulesSvc, auditSvc, tenantsSvc, authSvc, reportsSvc)
+	h := handlers.New(reposSvc, suppressionsSvc, rulesSvc, auditSvc, tenantsSvc, authSvc, reportsSvc, analyticsSvc, infraSvc, policySvc, artifacts, cfg.SuppressionSigningKey)
 	router := api.NewRouter(h)
 
 	expiryCtx, expiryCancel := context.WithCancel(ctx)

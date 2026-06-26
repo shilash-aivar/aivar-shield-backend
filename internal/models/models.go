@@ -129,6 +129,7 @@ type AuditEntry struct {
 	Severity     string          `json:"severity,omitempty"`
 	Details      json.RawMessage `json:"details"`
 	Signature    string          `json:"signature"`
+	PrevHash     string          `json:"prev_hash,omitempty"`
 }
 
 type RegisterRepoRequest struct {
@@ -175,4 +176,34 @@ type UpdateSuppressionStatusRequest struct {
 	ApprovedBy string `json:"approved_by"`
 	Scope      string `json:"scope,omitempty"`
 	ExpiresAt  string `json:"expires_at,omitempty"`
+}
+
+type InfraReview struct {
+	ID            string          `json:"id"`
+	Repo          string          `json:"repo"`
+	Status        string          `json:"status"`
+	SubmittedBy   string          `json:"submitted_by"`
+	ApprovedBy    string          `json:"approved_by,omitempty"`
+	Notes         string          `json:"notes,omitempty"`
+	ChangesAdd    int             `json:"changes_add"`
+	ChangesChange int             `json:"changes_change"`
+	ChangesDestroy         int             `json:"changes_destroy"`
+	EstimatedMonthlyDelta  *float64        `json:"estimated_monthly_delta,omitempty"`
+	PlanSummary            json.RawMessage `json:"plan_summary"`
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
+}
+
+type SubmitInfraReviewRequest struct {
+	Repo        string          `json:"repo"`
+	OrgID       string          `json:"org_id,omitempty"`
+	ProjectID   string          `json:"project_id,omitempty"`
+	SubmittedBy string          `json:"submitted_by"`
+	PlanJSON    json.RawMessage `json:"plan_json"`
+}
+
+type UpdateInfraReviewRequest struct {
+	Status     string `json:"status"`
+	ApprovedBy string `json:"approved_by"`
+	Notes      string `json:"notes,omitempty"`
 }

@@ -1,13 +1,11 @@
-package handlers
+package reports
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/aivar-shield/backend/internal/services/reports"
 )
 
-func renderDeliveryHTML(report reports.DeliveryReport) string {
+func RenderDeliveryHTML(report DeliveryReport) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Aivar Delivery Report</title>
 <style>body{font-family:system-ui;max-width:960px;margin:2rem auto;padding:0 1rem}

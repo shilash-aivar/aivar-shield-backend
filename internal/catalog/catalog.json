@@ -82,6 +82,24 @@
       "description": "Terraform linter focused on best practices and provider-specific rules."
     },
     {
+      "id": "conftest",
+      "name": "Conftest (OPA)",
+      "category": "policy",
+      "binary": "conftest",
+      "official_docs": "https://www.conftest.dev/",
+      "rule_index": "https://www.openpolicyagent.org/docs/latest/",
+      "description": "Test configuration files against Open Policy Agent (OPA) Rego policies."
+    },
+    {
+      "id": "kubeconform",
+      "name": "Kubeconform",
+      "category": "kubernetes",
+      "binary": "kubeconform",
+      "official_docs": "https://github.com/yannh/kubeconform",
+      "rule_index": "https://github.com/yannh/kubeconform",
+      "description": "Kubernetes manifest validator using JSON schemas."
+    },
+    {
       "id": "sonarqube",
       "name": "SonarQube",
       "category": "sast",

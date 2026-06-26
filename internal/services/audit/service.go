@@ -34,24 +34,26 @@ func (s *Service) Write(ctx context.Context, entry models.AuditEntry) (models.Au
 		entry.Details = json.RawMessage(`{}`)
 	}
 
+	entry.PrevHash = s.lastHash(ctx)
+
 	entry.Signature = s.sign(entry)
 
 	row := s.pool.QueryRow(ctx, `
 		INSERT INTO audit_log (
 			id, timestamp, actor, actor_type, surface, action,
-			resource_type, resource_id, repo, rule_id, tool, severity, details, signature
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+			resource_type, resource_id, repo, rule_id, tool, severity, details, signature, prev_hash
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
 		RETURNING id, timestamp, actor, actor_type, surface, action,
-			resource_type, resource_id, repo, rule_id, tool, severity, details, signature
+			resource_type, resource_id, repo, rule_id, tool, severity, details, signature, prev_hash
 	`, entry.ID, entry.Timestamp, entry.Actor, entry.ActorType, entry.Surface, entry.Action,
 		entry.ResourceType, entry.ResourceID, nullString(entry.Repo), nullString(entry.RuleID),
-		nullString(entry.Tool), nullString(entry.Severity), entry.Details, entry.Signature)
+		nullString(entry.Tool), nullString(entry.Severity), entry.Details, entry.Signature, entry.PrevHash)
 
 	var out models.AuditEntry
 	var repo, ruleID, tool, severity *string
 	if err := row.Scan(
 		&out.ID, &out.Timestamp, &out.Actor, &out.ActorType, &out.Surface, &out.Action,
-		&out.ResourceType, &out.ResourceID, &repo, &ruleID, &tool, &severity, &out.Details, &out.Signature,
+		&out.ResourceType, &out.ResourceID, &repo, &ruleID, &tool, &severity, &out.Details, &out.Signature, &out.PrevHash,
 	); err != nil {
 		return models.AuditEntry{}, fmt.Errorf("insert audit log: %w", err)
 	}
@@ -79,7 +81,7 @@ func (s *Service) List(ctx context.Context, filter ListFilter) ([]models.AuditEn
 
 	rows, err := s.pool.Query(ctx, `
 		SELECT a.id, a.timestamp, a.actor, a.actor_type, a.surface, a.action,
-			a.resource_type, a.resource_id, a.repo, a.rule_id, a.tool, a.severity, a.details, a.signature
+			a.resource_type, a.resource_id, a.repo, a.rule_id, a.tool, a.severity, a.details, a.signature, a.prev_hash
 		FROM audit_log a
 		LEFT JOIN repos r ON r.full_name = a.repo
 		LEFT JOIN projects p ON p.id = r.project_id
@@ -105,7 +107,7 @@ func (s *Service) List(ctx context.Context, filter ListFilter) ([]models.AuditEn
 		if err := rows.Scan(
 			&entry.ID, &entry.Timestamp, &entry.Actor, &entry.ActorType, &entry.Surface, &entry.Action,
 			&entry.ResourceType, &entry.ResourceID, &repoVal, &ruleID, &tool, &severity,
-			&entry.Details, &entry.Signature,
+			&entry.Details, &entry.Signature, &entry.PrevHash,
 		); err != nil {
 			return nil, fmt.Errorf("scan audit log: %w", err)
 		}
@@ -135,6 +137,67 @@ func (s *Service) sign(entry models.AuditEntry) string {
 	mac := hmac.New(sha256.New, []byte(s.signingKey))
 	mac.Write(payload)
 	return "sha256:" + hex.EncodeToString(mac.Sum(nil))
+}
+
+func (s *Service) lastHash(ctx context.Context) string {
+	var sig string
+	err := s.pool.QueryRow(ctx, `
+		SELECT signature FROM audit_log ORDER BY timestamp DESC, id DESC LIMIT 1
+	`).Scan(&sig)
+	if err != nil {
+		return ""
+	}
+	return sig
+}
+
+type VerifyResult struct {
+	Valid   bool     `json:"valid"`
+	Total   int      `json:"total"`
+	Checked int      `json:"checked"`
+	Errors  []string `json:"errors,omitempty"`
+}
+
+func (s *Service) Verify(ctx context.Context, limit int) VerifyResult {
+	if limit <= 0 {
+		limit = 500
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, timestamp, actor, actor_type, surface, action,
+			resource_type, resource_id, repo, rule_id, tool, severity, details, signature, prev_hash
+		FROM audit_log ORDER BY timestamp ASC, id ASC LIMIT $1
+	`, limit)
+	if err != nil {
+		return VerifyResult{Valid: false, Errors: []string{err.Error()}}
+	}
+	defer rows.Close()
+
+	var prev string
+	result := VerifyResult{Valid: true}
+	for rows.Next() {
+		var entry models.AuditEntry
+		var repoVal, ruleID, tool, severity *string
+		if err := rows.Scan(
+			&entry.ID, &entry.Timestamp, &entry.Actor, &entry.ActorType, &entry.Surface, &entry.Action,
+			&entry.ResourceType, &entry.ResourceID, &repoVal, &ruleID, &tool, &severity,
+			&entry.Details, &entry.Signature, &entry.PrevHash,
+		); err != nil {
+			result.Valid = false
+			result.Errors = append(result.Errors, err.Error())
+			return result
+		}
+		result.Total++
+		if entry.PrevHash != prev {
+			result.Valid = false
+			result.Errors = append(result.Errors, fmt.Sprintf("chain break at %s: expected prev %s got %s", entry.ID, prev, entry.PrevHash))
+		}
+		if entry.Signature != s.sign(entry) {
+			result.Valid = false
+			result.Errors = append(result.Errors, fmt.Sprintf("invalid signature at %s", entry.ID))
+		}
+		prev = entry.Signature
+		result.Checked++
+	}
+	return result
 }
 
 func nullString(v string) *string {

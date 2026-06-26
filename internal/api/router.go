@@ -38,6 +38,8 @@ func NewRouter(h *handlers.Handler) http.Handler {
 		r.Post("/organizations", h.CreateOrganization)
 		r.Get("/organizations/{orgID}/teams", h.ListTeams)
 		r.Post("/organizations/{orgID}/teams", h.CreateTeam)
+		r.Get("/organizations/{orgID}/teams/{teamID}/members", h.ListTeamMembers)
+		r.Post("/organizations/{orgID}/teams/{teamID}/members", h.AddTeamMember)
 		r.Get("/organizations/{orgID}/projects", h.ListProjects)
 		r.Post("/organizations/{orgID}/projects", h.CreateProject)
 
@@ -46,7 +48,20 @@ func NewRouter(h *handlers.Handler) http.Handler {
 		r.Patch("/organizations/{orgID}/members/{userID}", h.UpdateMemberRole)
 
 		r.Get("/reports/delivery", h.DeliveryReport)
+		r.Get("/reports/delivery/bundle", h.DeliveryBundle)
+		r.Post("/reports/delivery/publish", h.PublishDeliveryBundle)
+		r.Get("/artifacts/{key:*}", h.GetArtifact)
 
+		r.Post("/policy/evaluate", h.EvaluatePolicy)
+
+		r.Get("/analytics/summary", h.AnalyticsSummary)
+		r.Get("/audit/verify", h.VerifyAudit)
+
+		r.Get("/infra/reviews", h.ListInfraReviews)
+		r.Post("/infra/reviews", h.SubmitInfraReview)
+		r.Patch("/infra/reviews/{id}/status", h.UpdateInfraReviewStatus)
+
+		r.Get("/repos", h.ListRepos)
 		r.Post("/repos", h.RegisterRepo)
 		r.Get("/repos/{fullName}", h.GetRepo)
 

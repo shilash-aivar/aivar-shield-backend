@@ -166,10 +166,20 @@ func (s *Service) Me(ctx context.Context, r *http.Request) (MeResponse, error) {
 			break
 		}
 	}
+	if !resp.CanApprove {
+		var teamApprover bool
+		_ = s.pool.QueryRow(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM team_memberships
+				WHERE user_id = $1 AND role IN ('admin', 'approver')
+			)
+		`, user.ID).Scan(&teamApprover)
+		resp.CanApprove = teamApprover
+	}
 	return resp, nil
 }
 
-func (s *Service) CanApprove(ctx context.Context, userID, orgID string) (bool, error) {
+func (s *Service) CanApprove(ctx context.Context, userID, orgID, teamID string) (bool, error) {
 	if !s.Enabled() {
 		return true, nil
 	}
@@ -177,6 +187,15 @@ func (s *Service) CanApprove(ctx context.Context, userID, orgID string) (bool, e
 	err := s.pool.QueryRow(ctx, `
 		SELECT role FROM memberships WHERE user_id = $1 AND organization_id = $2
 	`, userID, orgID).Scan(&role)
+	if err == nil && (role == "admin" || role == "approver") {
+		return true, nil
+	}
+	if teamID == "" {
+		return false, nil
+	}
+	err = s.pool.QueryRow(ctx, `
+		SELECT role FROM team_memberships WHERE user_id = $1 AND team_id = $2
+	`, userID, teamID).Scan(&role)
 	if err != nil {
 		return false, nil
 	}

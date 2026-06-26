@@ -8,12 +8,16 @@ import (
 	"github.com/aivar-shield/backend/internal/gitconfig"
 	"github.com/aivar-shield/backend/internal/models"
 	"github.com/aivar-shield/backend/internal/services/audit"
+	"github.com/aivar-shield/backend/internal/services/analytics"
 	authsvc "github.com/aivar-shield/backend/internal/services/auth"
+	"github.com/aivar-shield/backend/internal/services/infra"
+	"github.com/aivar-shield/backend/internal/services/policy"
 	"github.com/aivar-shield/backend/internal/services/repos"
 	"github.com/aivar-shield/backend/internal/services/reports"
 	"github.com/aivar-shield/backend/internal/services/rules"
 	"github.com/aivar-shield/backend/internal/services/suppressions"
 	"github.com/aivar-shield/backend/internal/services/tenants"
+	"github.com/aivar-shield/backend/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -25,6 +29,11 @@ type Handler struct {
 	tenants      *tenants.Service
 	auth         *authsvc.Service
 	reports      *reports.Service
+	analytics    *analytics.Service
+	infra        *infra.Service
+	policy       *policy.Service
+	artifacts    *storage.Artifacts
+	signingKey   string
 }
 
 func New(
@@ -35,6 +44,11 @@ func New(
 	tenantsSvc *tenants.Service,
 	authSvc *authsvc.Service,
 	reportsSvc *reports.Service,
+	analyticsSvc *analytics.Service,
+	infraSvc *infra.Service,
+	policySvc *policy.Service,
+	artifacts *storage.Artifacts,
+	signingKey string,
 ) *Handler {
 	return &Handler{
 		repos:        reposSvc,
@@ -44,6 +58,11 @@ func New(
 		tenants:      tenantsSvc,
 		auth:         authSvc,
 		reports:      reportsSvc,
+		analytics:    analyticsSvc,
+		infra:        infraSvc,
+		policy:       policySvc,
+		artifacts:    artifacts,
+		signingKey:   signingKey,
 	}
 }
 
@@ -130,7 +149,8 @@ func (h *Handler) UpdateSuppressionStatus(w http.ResponseWriter, r *http.Request
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		ok, err := h.auth.CanApprove(r.Context(), user.ID, orgID)
+		teamID, _ := h.suppressions.TeamIDForSuppression(r.Context(), id)
+		ok, err := h.auth.CanApprove(r.Context(), user.ID, orgID, teamID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -392,7 +412,7 @@ func (h *Handler) DeliveryReport(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.Get("format") == "html" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte(renderDeliveryHTML(report)))
+		_, _ = w.Write([]byte(reports.RenderDeliveryHTML(report)))
 		return
 	}
 	writeJSON(w, http.StatusOK, report)

@@ -39,6 +39,9 @@ type Config struct {
 	SMTPPassword          string
 	EmailFrom             string
 	NotifyEmails          []string
+	WebhookURL            string
+	WebhookSecret         string
+	ArtifactsDir          string
 	S3Bucket              string
 	S3Region              string
 	SuppressionSigningKey string
@@ -73,6 +76,9 @@ func Load() Config {
 		SMTPPassword:          os.Getenv("AIVAR_SMTP_PASSWORD"),
 		EmailFrom:             os.Getenv("AIVAR_EMAIL_FROM"),
 		NotifyEmails:          splitCSV(os.Getenv("AIVAR_NOTIFY_EMAILS")),
+		WebhookURL:            os.Getenv("AIVAR_WEBHOOK_URL"),
+		WebhookSecret:         os.Getenv("AIVAR_WEBHOOK_SECRET"),
+		ArtifactsDir:          os.Getenv("AIVAR_ARTIFACTS_DIR"),
 		S3Bucket:              os.Getenv("AIVAR_S3_BUCKET"),
 		S3Region:              os.Getenv("AIVAR_S3_REGION"),
 		SuppressionSigningKey: os.Getenv("AIVAR_SUPPRESSION_SIGNING_KEY"),

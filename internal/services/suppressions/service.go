@@ -153,6 +153,10 @@ func (s *Service) UpdateStatus(ctx context.Context, id string, req models.Update
 	action := "exception_rejected"
 	if req.Status == "approved" {
 		action = "exception_approved"
+	} else if req.Status == "revoked" {
+		action = "exception_revoked"
+	} else if req.Status == "expired" {
+		action = "exception_expired"
 	}
 	_, _ = s.audit.Write(ctx, models.AuditEntry{
 		Actor: req.ApprovedBy, ActorType: "approver", Surface: "portal",
@@ -195,6 +199,23 @@ func (s *Service) OrgIDForSuppression(ctx context.Context, id string) (string, e
 		return "", fmt.Errorf("resolve suppression org: %w", err)
 	}
 	return orgID, nil
+}
+
+func (s *Service) TeamIDForSuppression(ctx context.Context, id string) (string, error) {
+	var teamID string
+	err := s.pool.QueryRow(ctx, `
+		SELECT COALESCE(p.team_id, p2.team_id)::text
+		FROM suppressions s
+		JOIN repos r ON r.id = s.repo_id
+		LEFT JOIN projects p ON p.id = r.project_id
+		LEFT JOIN repo_projects rp ON rp.repo_id = r.id
+		LEFT JOIN projects p2 ON p2.id = rp.project_id
+		WHERE s.id = $1
+	`, id).Scan(&teamID)
+	if err != nil {
+		return "", nil
+	}
+	return teamID, nil
 }
 
 func (s *Service) repoFullName(ctx context.Context, suppressionID string) (string, error) {

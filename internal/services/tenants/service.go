@@ -261,6 +261,65 @@ func (s *Service) AddMember(ctx context.Context, orgID, login, role string) (mod
 	return models.Member{}, fmt.Errorf("member added but not found")
 }
 
+func (s *Service) AddTeamMember(ctx context.Context, teamID, login, role string) (models.Member, error) {
+	login = strings.TrimSpace(login)
+	if login == "" {
+		return models.Member{}, fmt.Errorf("github_login is required")
+	}
+	if role != "admin" && role != "approver" && role != "member" {
+		return models.Member{}, fmt.Errorf("invalid role: %s", role)
+	}
+	var userID string
+	err := s.pool.QueryRow(ctx, `SELECT id FROM users WHERE lower(login) = lower($1)`, login).Scan(&userID)
+	if err != nil {
+		return models.Member{}, fmt.Errorf("user %q not found — they must sign in once first", login)
+	}
+	_, err = s.pool.Exec(ctx, `
+		INSERT INTO team_memberships (user_id, team_id, role)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (user_id, team_id) DO UPDATE SET role = EXCLUDED.role
+	`, userID, teamID, role)
+	if err != nil {
+		return models.Member{}, fmt.Errorf("add team member: %w", err)
+	}
+	members, err := s.ListTeamMembers(ctx, teamID)
+	if err != nil {
+		return models.Member{}, err
+	}
+	for _, m := range members {
+		if m.UserID == userID {
+			return m, nil
+		}
+	}
+	return models.Member{}, fmt.Errorf("team member added but not found")
+}
+
+func (s *Service) ListTeamMembers(ctx context.Context, teamID string) ([]models.Member, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT u.id, u.login, u.email, u.name, tm.role
+		FROM team_memberships tm
+		JOIN users u ON u.id = tm.user_id
+		WHERE tm.team_id = $1
+		ORDER BY u.login
+	`, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("list team members: %w", err)
+	}
+	defer rows.Close()
+	out := make([]models.Member, 0)
+	for rows.Next() {
+		var m models.Member
+		var email, name *string
+		if err := rows.Scan(&m.UserID, &m.Login, &email, &name, &m.Role); err != nil {
+			return nil, err
+		}
+		m.Email = deref(email)
+		m.Name = deref(name)
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
 func nullString(v string) *string {
 	if v == "" {
 		return nil

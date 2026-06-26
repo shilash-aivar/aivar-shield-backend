@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aivar
+      POSTGRES_PASSWORD: aivar
+      POSTGRES_DB: aivar_shield
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      AIVAR_DATABASE_URL: postgres://aivar:aivar@postgres:5432/aivar_shield?sslmode=disable
+      AIVAR_UI_URL: http://localhost:5173
+      AIVAR_ARTIFACTS_DIR: /data/artifacts
+      AIVAR_SUPPRESSION_SIGNING_KEY: ${AIVAR_SUPPRESSION_SIGNING_KEY:-change-me}
+    volumes:
+      - artifacts:/data/artifacts
+    depends_on:
+      - postgres
+
+  ui:
+    build: ../aivar-shield-ui
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  artifacts:
